@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}People & Injuries — VicRoadInsight{% endblock %}
+{% block breadcrumb %} <span>›</span> People &amp; Injuries{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="reveal">
+    <div class="eyebrow">Sub-Task B · Level 2 · Summarise</div>
+    <h1 class="section-title">Focused view: <em>people &amp; injuries</em></h1>
+    <p class="section-sub">Filter crash-involved persons by demographic and outcome factors to see which groups carry the heaviest injury burden. Built around Dr. Priya Nair's research workflow.</p>
+  </div>
+
+  <div class="data-layout reveal" style="animation-delay:0.1s">
+    <aside class="sidebar">
+      <h3>Filters</h3>
+      <div class="filter-group">
+        <label>Age Group</label>
+        <select id="f-age">
+          <option value="">All ages</option>
+          {% for ag in age_groups %}<option value="{{ ag }}">{{ ag }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Sex</label>
+        <select id="f-sex"><option value="">All</option><option value="M">Male</option><option value="F">Female</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Road User Type</label>
+        <select id="f-road-user">
+          <option value="">All types</option>
+          {% for ru in road_users %}<option value="{{ ru['ROAD_USER_TYPE'] }}">{{ ru['ROAD_USER_TYPE_DESC'] }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Ejection Status</label>
+        <select id="f-ejected">
+          <option value="">All</option>
+          {% for e in ejections %}<option value="{{ e['EJECTED_CODE'] }}">{{ e['EJECTED_DESC'] }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Taken to Hospital</label>
+        <select id="f-hospital"><option value="">All</option><option value="Y">Yes</option><option value="N">No</option></select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+        <button class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+        <button class="btn btn-brass" onclick="exportCSV()" style="margin-top:0.2rem;">Export CSV</button>
+      </div>
+      <div class="notice">
+        <span class="icon">Note —</span>
+        <span>Persons with unknown/blank sex, unknown age, or unknown road-user type are excluded from all calculations.</span>
+      </div>
+    </aside>
+
+    <div class="main-panel">
+      <div class="results-header">
+        <div class="results-count" id="results-count">Loading…</div>
+        <div class="sort-control">
+          <span>Sort</span>
+          <select id="sort-col">
+            <option value="fatalities">Fatalities</option>
+            <option value="persons">Total Persons</option>
+            <option value="serious_injuries">Serious Injuries</option>
+            <option value="hosp_rate">Hosp. Rate</option>
+            <option value="eject_rate">Ejection Rate</option>
+          </select>
+          <select id="sort-dir"><option value="desc">High → Low</option><option value="asc">Low → High</option></select>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="table-container">
+        <div class="loader"><div class="spinner"></div> Loading data…</div>
+      </div>
+
+      <div class="chart-wrap" id="chart-container" style="display:none;">
+        <h3>Injury severity distribution</h3>
+        <div class="donut-wrap">
+          <canvas id="donut-chart" width="210" height="210" style="max-width:210px;max-height:210px;"></canvas>
+          <div class="donut-legend" id="donut-legend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let donutChart = null;
+function getFilters(){return{age:f('f-age'),sex:f('f-sex'),road_user:f('f-road-user'),ejected:f('f-ejected'),hospital:f('f-hospital'),sort:f('sort-col'),dir:f('sort-dir')};}
+function f(id){return document.getElementById(id).value;}
+
+function applyFilters(){
+  document.getElementById('table-container').innerHTML='<div class="loader"><div class="spinner"></div> Running query…</div>';
+  document.getElementById('chart-container').style.display='none';
+  fetch('/api/people?'+new URLSearchParams(getFilters())).then(r=>r.json()).then(renderPeople);
+}
+function resetFilters(){
+  ['f-age','f-sex','f-road-user','f-ejected','f-hospital'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sort-col').value='fatalities';document.getElementById('sort-dir').value='desc';
+  applyFilters();
+}
+function exportCSV(){const p=getFilters();p.export='csv';window.location='/api/people?'+new URLSearchParams(p);}
+
+function renderPeople(data){
+  const rows=data.rows;
+  document.getElementById('results-count').innerHTML=`Showing <strong>${rows.length}</strong> demographic groups`;
+  if(!rows.length){document.getElementById('table-container').innerHTML='<div class="empty-state"><p>No data matches your filters. Try broadening your selection.</p></div>';return;}
+  let rank=0;
+  let html=`<table><thead><tr><th>#</th><th>Sex</th><th>Age</th><th>Road User</th><th>Persons</th><th>Fatalities</th><th>Serious</th><th>Hosp. Rate</th><th>Ejection</th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    rank++;
+    const rc=rank<=3?'top3':'';
+    const hc=r.hosp_rate>=70?'badge-red':r.hosp_rate>=40?'badge-amber':'badge-green';
+    const ec=r.eject_rate>=10?'badge-red':r.eject_rate>=3?'badge-amber':'badge-green';
+    html+=`<tr><td><span class="rank-badge ${rc}">${rank}</span></td><td>${r.sex_label}</td>
+      <td class="mono" style="font-size:0.82rem;">${r.AGE_GROUP}</td><td>${r.road_user}</td>
+      <td class="num">${r.persons.toLocaleString()}</td>
+      <td class="num" style="color:var(--crit);font-weight:600;">${r.fatalities.toLocaleString()}</td>
+      <td class="num">${r.serious_injuries.toLocaleString()}</td>
+      <td><span class="badge ${hc}">${r.hosp_rate}%</span></td>
+      <td><span class="badge ${ec}">${r.eject_rate}%</span></td></tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('table-container').innerHTML=html;
+  // animate bars not needed here; donut below
+  if(data.donut&&data.donut.length){
+    const colours=['#b6442f','#c17a2b','#3a6489','#4f7d5a'];
+    const labels=data.donut.map(d=>d.label),values=data.donut.map(d=>d.value);
+    const total=values.reduce((a,b)=>a+b,0);
+    if(donutChart)donutChart.destroy();
+    donutChart=new Chart(document.getElementById('donut-chart').getContext('2d'),{
+      type:'doughnut',
+      data:{labels,datasets:[{data:values,backgroundColor:colours,borderWidth:3,borderColor:'#fffdf9'}]},
+      options:{plugins:{legend:{display:false}},cutout:'66%',animation:{animateRotate:true,duration:700}}
+    });
+    let lg='';
+    data.donut.forEach((d,i)=>{
+      const pct=total>0?(d.value/total*100).toFixed(1):0;
+      lg+=`<div class="legend-item"><div class="legend-dot" style="background:${colours[i]};"></div>
+        <div><div style="font-weight:600;font-size:0.85rem;">${d.label}</div>
+        <div class="mono" style="font-size:0.77rem;color:var(--text-soft);">${d.value.toLocaleString()} · ${pct}%</div></div></div>`;
+    });
+    document.getElementById('donut-legend').innerHTML=lg;
+    document.getElementById('chart-container').style.display='block';
+  }
+}
+applyFilters();
+</script>
+{% endblock %}

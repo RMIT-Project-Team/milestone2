@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}VicRoadInsight — Victorian Road Crash Data{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <div class="hero-content reveal">
+    <div class="eyebrow">Department of Transport &amp; Planning · Victoria</div>
+    <h1>Reading the road in <em>numbers</em>, 2013–2025.</h1>
+    <p class="hero-lead">A data observatory for road-safety analysts and public-health researchers — turning Victoria's crash record into patterns, risk profiles and evidence that holds up in a briefing.</p>
+    <div class="fact-strip">
+      {% for f in facts %}
+      <div class="fact-card">
+        <div class="fval">{{ f.value }}</div>
+        <div class="flabel">{{ f.label }}</div>
+        <div class="fdesc">{{ f.desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="reveal" style="animation-delay:0.1s">
+    <div class="eyebrow">Two pathways</div>
+    <h2 class="section-title">Choose how you want to <em>read the data</em></h2>
+    <p class="section-sub">Every figure on this site is pulled live from the Victorian road crash database — no estimates, no external blending. Pick the lens that matches your work.</p>
+  </div>
+
+  <div class="pathway-grid reveal" style="animation-delay:0.15s">
+    <a href="/conditions" class="pathway-card">
+      <div class="pc-tag">Sub-Task A · Road Safety Analysts</div>
+      <h3>Conditions Analysis</h3>
+      <p>Filter crashes by road surface, atmospheric conditions and light level. Surface which environmental combinations carry the highest fatality rates — and take the evidence straight into infrastructure cases.</p>
+      <span class="pc-cta">Explore conditions →</span>
+    </a>
+    <a href="/people" class="pathway-card">
+      <div class="pc-tag">Sub-Task B · Health Researchers</div>
+      <h3>People &amp; Injuries</h3>
+      <p>Explore injury outcomes by age, sex, road-user type, ejection status and hospitalisation. Identify the demographic profiles facing above-average serious-injury and fatality risk.</p>
+      <span class="pc-cta">Explore injuries →</span>
+    </a>
+  </div>
+
+  <div style="margin-top:4rem;" class="reveal" style="animation-delay:0.2s">
+    <div class="eyebrow">What it does</div>
+    <h2 class="section-title">Built for evidence, not eyeballing</h2>
+    <p class="section-sub">A purpose-built instrument for people who already know the data is out there — they just need it in a form that answers real questions.</p>
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-label">Evidence-based</div>
+        <div class="card-desc">Every figure comes straight from the official crash database. No estimates, no mixing in external sources.</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Live filtering</div>
+        <div class="card-desc">Stack multiple filters at once. Results and charts update in real time, no page reloads.</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Above-average risk</div>
+        <div class="card-desc">The Deep-Dive runs a nested query to automatically surface profiles with statistically above-average risk.</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Export-ready</div>
+        <div class="card-desc">Download any filtered view as CSV to continue analysis in R, Stata or Excel.</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}About — VicRoadInsight{% endblock %}
+{% block breadcrumb %} <span>›</span> About / Mission{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+
+  <!-- Mission -->
+  <div class="reveal" style="max-width:880px;margin-bottom:3rem;">
+    <div class="eyebrow">Our purpose</div>
+    <h1 class="section-title">The data exists. We make it <em>answer questions</em>.</h1>
+    {% if mission %}
+    <div class="mission-block" style="margin-top:1.5rem;">
+      <p class="mission-lead">{{ mission['mission_text'] }}</p>
+      <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--line-soft);position:relative;z-index:1;">
+        <div class="eyebrow" style="margin-bottom:0.6rem;">The social challenge</div>
+        <p style="font-size:0.92rem;color:var(--text-mid);line-height:1.7;">{{ mission['social_challenge'] }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- How to use -->
+  <div class="reveal" style="animation-delay:0.1s;margin-bottom:3rem;">
+    <div class="eyebrow">Getting started</div>
+    <h2 class="section-title" style="font-size:1.8rem;">From question to insight in four steps</h2>
+    <p class="section-sub">No manual required — the path through the site is built to be obvious.</p>
+    {% if steps %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1.1rem;">
+      {% for step in steps %}
+      <div class="step-card">
+        <div class="step-num">{{ step['step_order'] }}</div>
+        <div style="font-family:'Fraunces',serif;font-size:1.12rem;color:var(--ink);margin-bottom:0.35rem;">{{ step['step_title'] }}</div>
+        <div style="font-size:0.84rem;color:var(--text-soft);line-height:1.55;">{{ step['step_desc'] }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Personas -->
+  <div class="reveal" style="animation-delay:0.15s;margin-bottom:3rem;">
+    <div class="eyebrow">Who it's for</div>
+    <h2 class="section-title" style="font-size:1.8rem;">Two researchers, two pathways</h2>
+    <p class="section-sub">Each user group maps cleanly to one half of the site — distinct professions, distinct data interests, distinct goals.</p>
+    {% if personas %}
+    <div class="persona-grid">
+      {% for p in personas %}
+      <div class="persona-card">
+        <div class="persona-header">
+          <div class="persona-avatar">{{ p['name'].replace('Dr. ','').split()[0][0] }}{{ p['name'].replace('Dr. ','').split()[-1][0] }}</div>
+          <div class="persona-info">
+            <h4>{{ p['name'] }}</h4>
+            <div class="role">{{ p['occupation'] }}</div>
+            <div class="role" style="font-size:0.78rem;">{{ p['organisation'] }}</div>
+          </div>
+        </div>
+        <div class="persona-quote">{{ p['quote'] }}</div>
+        <div class="persona-meta">
+          <span>Age {{ p['age'] }}</span>
+          <span>{{ p['location'] }}</span>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-mid);margin-top:0.9rem;line-height:1.6;">{{ p['description'] }}</p>
+        <span class="persona-badge">{{ p['subtask'] }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Team -->
+  <div class="reveal" style="animation-delay:0.2s;">
+    <div class="eyebrow">Behind the project</div>
+    <h2 class="section-title" style="font-size:1.8rem;">The team</h2>
+    <p class="section-sub">RMIT University · Programming Studio (COSC2803) · Semester 1, 2026</p>
+    {% if team %}
+    <div class="table-wrap" style="max-width:580px;">
+      <table>
+        <thead><tr><th>Name</th><th>Student ID</th><th>Sub-Task</th></tr></thead>
+        <tbody>
+          {% for m in team %}
+          <tr>
+            <td style="font-weight:600;">{{ m['name'] }}</td>
+            <td class="mono" style="font-size:0.83rem;">{{ m['student_id'] }}</td>
+            <td><span class="badge badge-navy">{{ m['subtask'] }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

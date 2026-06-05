@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Deep-Dive — VicRoadInsight{% endblock %}
+{% block breadcrumb %} <span>›</span> People &amp; Injuries <span>›</span> Injury Deep-Dive{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="reveal">
+    <div class="eyebrow">Sub-Task B · Level 3 · Discover</div>
+    <h1 class="section-title">Above-average risk <em>demographic profiles</em></h1>
+    <p class="section-sub">Query 1 calculates the average serious-injury rate across every demographic group. Query 2 uses that result as its input and returns only the profiles sitting above it — surfacing the groups most at risk, not just summarising them.</p>
+  </div>
+
+  <div class="howbox reveal" style="animation-delay:0.08s">
+    <strong>How this works:</strong> the first query groups all crash-involved persons by sex, age and road-user type and finds each group's serious/fatal injury rate. The second query takes that output as a sub-query, keeps only groups above the cross-group average, and ranks them highest to lowest. That nested step is what turns a summary into a discovery.
+  </div>
+
+  <div class="dim-tabs reveal" id="dim-tabs" style="animation-delay:0.1s">
+    <button class="dim-tab active" data-dim="age_user" onclick="setDim(this,'age_user')">Age + Sex + Road User</button>
+    <button class="dim-tab" data-dim="age_only" onclick="setDim(this,'age_only')">By Age Only</button>
+    <button class="dim-tab" data-dim="user_only" onclick="setDim(this,'user_only')">By Road User Only</button>
+  </div>
+
+  <div class="threshold-banner reveal" id="threshold-banner" style="display:none;">
+    <div>
+      <div class="tb-label">Average serious/fatal rate · Query 1 result</div>
+      <strong id="avg-rate-val">—</strong>
+    </div>
+    <div>
+      <div class="tb-label">Showing only profiles above this threshold</div>
+    </div>
+    <div class="tb-count" id="profile-count-banner"></div>
+  </div>
+
+  <div class="insight-box" id="insight-box" style="display:none;">
+    <div class="ib-label">Key Insight</div>
+    <p id="insight-text"></p>
+  </div>
+
+  <div id="table-container">
+    <div class="loader"><div class="spinner"></div> Running nested query…</div>
+  </div>
+
+  <div class="chart-wrap" id="heatmap-wrap" style="display:none;">
+    <h3>Risk heatmap — age group × road user type (serious/fatal rate)</h3>
+    <div style="margin-bottom:1rem;display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap;font-size:0.77rem;color:var(--text-soft);">
+      <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:22px;height:14px;border-radius:4px;background:#e2ecdf;"></div><span>Low (&lt;20%)</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:22px;height:14px;border-radius:4px;background:#f6ecd8;"></div><span>Medium (20–40%)</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:22px;height:14px;border-radius:4px;background:#f6e3dd;"></div><span>High (&gt;40%)</span></div>
+    </div>
+    <div class="heatmap-container" id="heatmap-container"></div>
+  </div>
+
+  <div style="margin-top:1.5rem;display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap;">
+    <button class="btn btn-brass" onclick="exportDeepDive()">Export above-average profiles (CSV)</button>
+    <div style="font-size:0.78rem;color:var(--text-soft);max-width:60ch;line-height:1.5;">
+      <strong style="color:var(--ink);">Citation:</strong> VicRoadInsight (2026). Analysis of Victorian Road Crash Data 2013–2025. RMIT University, Programming Studio. Source: Department of Transport and Planning Victoria.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDim='age_user', currentData=null;
+function setDim(el,dim){
+  document.querySelectorAll('.dim-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');currentDim=dim;loadDeepDive();
+}
+function loadDeepDive(){
+  document.getElementById('table-container').innerHTML='<div class="loader"><div class="spinner"></div> Running nested query…</div>';
+  ['threshold-banner','insight-box','heatmap-wrap'].forEach(id=>document.getElementById(id).style.display='none');
+  fetch('/api/deepdive?dimension='+currentDim).then(r=>r.json()).then(d=>{currentData=d;renderDeepDive(d);});
+}
+function renderDeepDive(data){
+  const rows=data.rows, avg=data.avg_rate;
+  document.getElementById('avg-rate-val').textContent=avg+'%';
+  document.getElementById('profile-count-banner').textContent=rows.length+' profiles above threshold';
+  document.getElementById('threshold-banner').style.display='flex';
+  if(rows.length){
+    const t=rows[0], ratio=(t.serious_rate/avg).toFixed(1);
+    document.getElementById('insight-text').textContent=
+      `${t.profile} carries a serious/fatal injury rate of ${t.serious_rate}% — ${ratio}× the overall average of ${avg}%. `+
+      `${rows.length} profile${rows.length>1?'s':''} sit above the average, with motorcyclists and elderly pedestrians recurring at the top of the ranking.`;
+    document.getElementById('insight-box').style.display='block';
+  }
+  if(!rows.length){document.getElementById('table-container').innerHTML='<div class="empty-state"><p>No above-average risk profiles found.</p></div>';return;}
+  let html=`<div class="table-wrap"><table><thead><tr><th>Rank</th><th>Profile</th><th>Persons</th><th>Serious/Fatal Rate</th><th>Fatal Rate</th><th>Ejection</th></tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    const rank=i+1, rc=rank<=3?'top3':'';
+    const sc=r.serious_rate>=50?'badge-red':r.serious_rate>=35?'badge-amber':'badge-green';
+    const fc=r.fatal_rate>=8?'badge-red':r.fatal_rate>=3?'badge-amber':'badge-green';
+    html+=`<tr><td><span class="rank-badge ${rc}">${rank}</span></td><td style="font-weight:600;">${r.profile}</td>
+      <td class="num">${r.persons.toLocaleString()}</td>
+      <td><span class="badge ${sc}">${r.serious_rate}%</span><div style="font-size:0.7rem;color:var(--text-soft);margin-top:2px;">vs avg ${avg}%</div></td>
+      <td><span class="badge ${fc}">${r.fatal_rate}%</span></td>
+      <td><span class="badge badge-navy">${r.eject_rate}%</span></td></tr>`;
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('table-container').innerHTML=html;
+  if(data.heatmap&&data.heatmap.length)renderHeatmap(data.heatmap);
+}
+function renderHeatmap(hm){
+  const order=['0-4','13-15','16-17','18-21','22-25','26-29','30-39','40-49','50-59','60-64','65-69','70+'];
+  const ages=[...new Set(hm.map(h=>h.AGE_GROUP))].sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+  const users=[...new Set(hm.map(h=>h.road_user))].sort();
+  const lk={};hm.forEach(h=>lk[`${h.AGE_GROUP}|${h.road_user}`]=h.rate);
+  let html='<table class="heatmap-table"><thead><tr><th style="text-align:left;">Age</th>';
+  users.forEach(u=>html+=`<th>${u}</th>`);
+  html+='</tr></thead><tbody>';
+  ages.forEach(age=>{
+    html+=`<tr><th style="text-align:left;color:var(--ink);">${age}</th>`;
+    users.forEach(u=>{
+      const v=lk[`${age}|${u}`];
+      if(v===undefined){html+=`<td style="background:var(--paper-2);color:var(--text-soft);">—</td>`;}
+      else{let bg,fg;if(v>=40){bg='#f6e3dd';fg='#8a2f1e';}else if(v>=20){bg='#f6ecd8';fg='#7a4f17';}else{bg='#e2ecdf';fg='#2f5238';}
+        html+=`<td style="background:${bg};color:${fg};" title="${age} ${u}: ${v}%">${v}%</td>`;}
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('heatmap-container').innerHTML=html;
+  document.getElementById('heatmap-wrap').style.display='block';
+}
+function exportDeepDive(){
+  if(!currentData||!currentData.rows)return;
+  const h='Profile,Persons,Serious_Fatal_Rate,Fatal_Rate,Ejection_Rate,Avg_Rate\n';
+  const csv=h+currentData.rows.map(r=>`"${r.profile}",${r.persons},${r.serious_rate},${r.fatal_rate},${r.eject_rate},${r.avg_rate}`).join('\n');
+  const u=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const a=document.createElement('a');a.href=u;a.download='above_average_risk_profiles.csv';a.click();URL.revokeObjectURL(u);
+}
+loadDeepDive();
+</script>
+{% endblock %}

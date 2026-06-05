@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Conditions Analysis — VicRoadInsight{% endblock %}
+{% block breadcrumb %} <span>›</span> Conditions Analysis{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="reveal">
+    <div class="eyebrow">Sub-Task A · Level 2 · Summarise</div>
+    <h1 class="section-title">Crashes by road, weather &amp; <em>light conditions</em></h1>
+    <p class="section-sub">Filter crash data by environmental factors to see which condition combinations carry the highest fatality rates. Built around Marcus Chen's analyst workflow.</p>
+  </div>
+
+  <div class="data-layout reveal" style="animation-delay:0.1s">
+    <aside class="sidebar">
+      <h3>Filters</h3>
+      <div class="filter-group">
+        <label>Road Surface</label>
+        <select id="f-surface">
+          <option value="">All surfaces</option>
+          {% for s in surfaces %}<option value="{{ s['SURFACE_COND'] }}">{{ s['SURFACE_COND_DESC'] }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Atmospheric Condition</label>
+        <select id="f-weather">
+          <option value="">All conditions</option>
+          {% for a in atmospherics %}<option value="{{ a['ATMOSPH_COND'] }}">{{ a['ATMOSPH_COND_DESC'] }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Light Condition</label>
+        <select id="f-light">
+          <option value="">All lighting</option>
+          {% for l in lights %}<option value="{{ l['COND_ID'] }}">{{ l['COND_NAME'] }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Year Range</label>
+        <div class="year-range">
+          <input type="number" id="f-year-from" value="2013" min="2013" max="2025">
+          <span>→</span>
+          <input type="number" id="f-year-to" value="2025" min="2013" max="2025">
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+        <button class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+      </div>
+      <div class="notice">
+        <span class="icon">Note —</span>
+        <span>Records with unknown/missing condition codes are excluded from all calculations to avoid skewing the results.</span>
+      </div>
+    </aside>
+
+    <div class="main-panel">
+      <div class="results-header">
+        <div class="results-count" id="results-count">Loading…</div>
+        <div class="sort-control">
+          <span>Sort</span>
+          <select id="sort-col">
+            <option value="total_crashes">Total Crashes</option>
+            <option value="fatalities">Fatalities</option>
+            <option value="serious_injuries">Serious Injuries</option>
+            <option value="fatal_pct">% Fatal</option>
+          </select>
+          <select id="sort-dir"><option value="desc">High → Low</option><option value="asc">Low → High</option></select>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="table-container">
+        <div class="loader"><div class="spinner"></div> Loading data…</div>
+      </div>
+
+      <div class="chart-wrap" id="chart-container" style="display:none;">
+        <h3>Crashes by atmospheric condition</h3>
+        <div class="bar-chart" id="bar-chart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function f(id){return document.getElementById(id).value;}
+function applyFilters(){
+  document.getElementById('table-container').innerHTML='<div class="loader"><div class="spinner"></div> Running query…</div>';
+  document.getElementById('chart-container').style.display='none';
+  const p=new URLSearchParams({surface:f('f-surface'),weather:f('f-weather'),light:f('f-light'),
+    year_from:f('f-year-from'),year_to:f('f-year-to'),sort:f('sort-col'),dir:f('sort-dir')});
+  fetch('/api/conditions?'+p).then(r=>r.json()).then(renderConditions);
+}
+function resetFilters(){
+  ['f-surface','f-weather','f-light'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-year-from').value='2013';document.getElementById('f-year-to').value='2025';
+  document.getElementById('sort-col').value='total_crashes';document.getElementById('sort-dir').value='desc';
+  applyFilters();
+}
+function renderConditions(data){
+  const rows=data.rows;
+  document.getElementById('results-count').innerHTML=`Showing <strong>${rows.length}</strong> condition combinations`;
+  if(!rows.length){document.getElementById('table-container').innerHTML='<div class="empty-state"><p>No data matches your filters. Try broadening your selection.</p></div>';return;}
+  let html=`<table><thead><tr><th>Surface</th><th>Atmosphere</th><th>Light</th><th>Crashes</th><th>Fatalities</th><th>Serious</th><th>% Fatal</th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const fc=r.fatal_pct>=5?'badge-red':r.fatal_pct>=2?'badge-amber':'badge-green';
+    html+=`<tr><td>${r.surface}</td><td>${r.atmosphere}</td><td>${r.light}</td>
+      <td class="num">${r.total_crashes.toLocaleString()}</td>
+      <td class="num">${(r.fatalities??0).toLocaleString()}</td>
+      <td class="num">${(r.serious_injuries??0).toLocaleString()}</td>
+      <td><span class="badge ${fc}">${r.fatal_pct??0}%</span></td></tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('table-container').innerHTML=html;
+  if(data.chart&&data.chart.length){
+    const mx=Math.max(...data.chart.map(c=>c.value));
+    let ch='';
+    data.chart.forEach(c=>{ch+=`<div class="bar-row"><div class="bar-label">${c.label}</div>
+      <div class="bar-track"><div class="bar-fill" data-w="${Math.round(c.value/mx*100)}"><span class="bar-val">${c.value.toLocaleString()}</span></div></div></div>`;});
+    document.getElementById('bar-chart').innerHTML=ch;
+    document.getElementById('chart-container').style.display='block';
+    requestAnimationFrame(()=>document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%'));
+  }
+}
+applyFilters();
+</script>
+{% endblock %}
