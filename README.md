@@ -1,7 +1,7 @@
 # VicRoadInsightsNew
 
 Programming Studio project. It lets you
-explore Victorian road crash data from 2013 to 2025 — you can filter and
+explore Victorian road crash data from 2013 to 2025 you can filter and
 summarise crashes by road/weather/light conditions, and by the people involved
 (age, sex, road user type, injuries, etc.). All the numbers come straight from
 the database, nothing is typed in by hand.
