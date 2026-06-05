@@ -21,9 +21,7 @@ the database, nothing is typed in by hand.
 6. When you see a line that says Running on http://127.0.0.1:5000, open your
    web browser and go to:  localhost:5000
 
-7. Leave the black command window open while you use the site — it only runs
-   while that window is open. To stop it, click the window and press
-   **Ctrl + C**.
+
 
 ## What the website is built with
 
