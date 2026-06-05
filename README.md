@@ -15,18 +15,13 @@ You need **Python** installed on your computer first. Once you have that:
 3. Open a command window inside the folder: click the address bar at the top of
    the folder window, type cmd, and press Enter.
 4. Install the one thing it needs. Type:
-
    pip install -r requirements.txt
 5. Start the website. Type:
    python app.py
-  
-
 6. When you see a line that says Running on http://127.0.0.1:5000, open your
    web browser and go to:
-
-   ```
+  
    localhost:5000
-   ```
 
 7. Leave the black command window open while you use the site — it only runs
    while that window is open. To stop it, click the window and press
