@@ -34,14 +34,14 @@ You need **Python** installed on your computer first. Once you have that:
 
 ## What the website is built with
 
-- **Python (Flask)** — the main code that runs the website and gets the data.
-- **SQLite** — the database (`Road_Accidents.db`) where all the crash data lives.
-- **SQL** — the queries that pull, filter, sort, group and join the data.
-- **HTML** — the structure of each page (the headings, tables, layout).
-- **CSS** — the styling, i.e. how the site looks (colours, spacing, fonts).
-- **JavaScript** — makes the pages update instantly when you change a filter,
+- **Python (Flask)**  the main code that runs the website and gets the data.
+- **SQLite**  the database (`Road_Accidents.db`) where all the crash data lives.
+- **SQL** the queries that pull, filter, sort, group and join the data.
+- **HTML**  the structure of each page (the headings, tables, layout).
+- **CSS**  the styling, i.e. how the site looks (colours, spacing, fonts).
+- **JavaScript**  makes the pages update instantly when you change a filter,
   without reloading the page.
-- **Chart.js** — the small library that draws the donut chart.
+- **Chart.js**  the small library that draws the donut chart.
 
 ## The pages
 
