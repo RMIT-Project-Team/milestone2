@@ -21,7 +21,7 @@ You need **Python** installed on your computer first. Once you have that:
    python app.py
   
 
-6. When you see a line that says `Running on http://127.0.0.1:5000`, open your
+6. When you see a line that says Running on http://127.0.0.1:5000, open your
    web browser and go to:
 
    ```
